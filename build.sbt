@@ -10,11 +10,14 @@ lazy val foo = (project in file("foo"))
   .settings(commonSettings)
 
 lazy val sample = (project in file("sample"))
+  .enablePlugins(GatlingPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
       akkaHttp,
       akkaStreams,
-      akkaHttpSprayJson
+      akkaHttpSprayJson,
+      gatling,
+      gatlingCharts
     )
   )
