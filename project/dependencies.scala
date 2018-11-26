@@ -7,6 +7,7 @@ object dependencies {
 
   lazy val akkaStreams = "com.typesafe.akka" %% "akka-stream" % "2.5.18"
 
-  lazy val gatlingCharts = "io.gatling.highcharts" % "gatling-charts-highcharts" % "2.3.0" % "test"
-  lazy val gatling = "io.gatling" % "gatling-test-framework" % "2.3.0" % "test"
+  lazy val gatlingCharts = "io.gatling.highcharts" % "gatling-charts-highcharts" % "3.0.1" % "test,it"
+  lazy val gatling = "io.gatling" % "gatling-test-framework" % "3.0.1" % "test,it"
+
 }
