@@ -18,6 +18,7 @@ lazy val sample = (project in file("sample"))
       akkaStreams,
       akkaHttpSprayJson,
       gatling,
-      gatlingCharts
+      gatlingCharts,
+      typeSafeConfig
     )
   )

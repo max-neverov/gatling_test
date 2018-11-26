@@ -1,5 +1,6 @@
 package mn
 
+import com.typesafe.config.ConfigFactory
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 
@@ -7,7 +8,9 @@ import scala.concurrent.duration._
 
 class BasicSimulation extends Simulation {
 
-  private val baseUrl = "http://127.0.0.1:8080"
+  private val config = ConfigFactory.load("gatling.conf").getConfig("testConfig")
+
+  private val baseUrl = config.getString("baseUrl")
 
   val httpProtocol = http.baseUrl(baseUrl)
     .contentTypeHeader("application/json")

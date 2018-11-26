@@ -10,4 +10,5 @@ object dependencies {
   lazy val gatlingCharts = "io.gatling.highcharts" % "gatling-charts-highcharts" % "3.0.1" % "test,it"
   lazy val gatling = "io.gatling" % "gatling-test-framework" % "3.0.1" % "test,it"
 
+  lazy val typeSafeConfig = "com.typesafe" % "config" % "1.3.3"
 }
