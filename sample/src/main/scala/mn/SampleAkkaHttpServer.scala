@@ -11,7 +11,6 @@ import mn.model.model.User
 import mn.rest.Responses.ResponseError
 
 import scala.concurrent.Future
-import scala.io.StdIn
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
@@ -71,10 +70,15 @@ object SampleAkkaHttpServer {
       )
     }
 
-    val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
-    StdIn.readLine() // let it run until user presses return
-    bindingFuture.flatMap(_.unbind())
-      .onComplete(_ => system.terminate)
+    val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 8080)
+
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        System.out.println("Got SIGINT or SIGTERM. Shutdown server")
+        bindingFuture.flatMap(_.unbind())
+          .onComplete(_ => system.terminate)
+      }
+    })
   }
 
 }
