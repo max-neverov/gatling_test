@@ -2,43 +2,34 @@ package mn.repo
 
 import akka.Done
 import mn.model.model.User
+import scalikejdbc._
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 trait UserRepository {
+
   def getUser(name: String)(implicit ec: ExecutionContext): Future[Option[User]]
 
   def saveUser(user: User)(implicit ec: ExecutionContext): Future[Either[String, User]]
 
   def updateUser(name: String, user: User)(implicit ec: ExecutionContext): Future[Either[String, Done]]
+
 }
 
-class InMemoryUserRepository extends UserRepository {
+object UserRepository {
 
-  private val db = new java.util.concurrent.ConcurrentHashMap[String, User]()
+  object Users extends SQLSyntaxSupport[User] {
+    override val tableName: String = "users"
 
-  override def getUser(name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
-    val user = db.get(name)
-    if (user == null) Future.successful(None) else Future.successful(Some(user))
+    override def columns: Seq[String] = autoColumns[User]()
+
+    def namedValues(user: User): Map[scalikejdbc.SQLSyntax, ParameterBinder] =
+      autoNamedValues[User](user, column)
+
+    def apply(s: SyntaxProvider[User])(rs: WrappedResultSet): User = apply(s.resultName)(rs)
+
+    def apply(u: ResultName[User])(rs: WrappedResultSet): User = autoConstruct(rs, u)
   }
 
-  override def saveUser(user: User)(implicit ec: ExecutionContext): Future[Either[String, User]] = {
-    try {
-      val prev = db.putIfAbsent(user.name, user)
-      if (prev == null) Future.successful(Right(user))
-      else Future.successful(Left("User " + user + " is already existed"))
-    } catch {
-      case NonFatal(e) => Future.successful(Left(e.getMessage))
-    }
-  }
-
-  override def updateUser(name: String, user: User)(implicit ec: ExecutionContext): Future[Either[String, Done]] = {
-    try {
-      db.put(name, user)
-      Future.successful(Right(Done))
-    } catch {
-      case NonFatal(e) => Future.successful(Left(e.getMessage))
-    }
-  }
 }
+

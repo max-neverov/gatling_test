@@ -5,3 +5,29 @@ services:
     build: .
     ports:
       - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    links:
+      - postgres:postgres
+    environment:
+      PG_URL: jdbc:postgresql://postgres:5432/gtlng
+      PG_USERNAME: gtlng
+      PG_PASSWORD: gtlng
+
+  postgres:
+    image: postgres:11.1-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_DB=gtlng
+      - POSTGRES_USER=gtlng
+      - POSTGRES_PASSWORD=gtlng
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d gtlng -U gtlng"]
+      interval: 5s
+      timeout: 5s
+      retries: 6

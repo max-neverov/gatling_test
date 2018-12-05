@@ -5,7 +5,7 @@ lazy val commonSettings = Seq(
   version := "0.1",
   scalaVersion := "2.12.7",
 
-// do not include version in top level directory inside zip to cope with filenames in Dockerfile
+  // do not include version in top level directory inside zip to cope with filenames in Dockerfile
   topLevelDirectory := Some(name.value)
 )
 
@@ -23,7 +23,12 @@ lazy val sample = (project in file("sample"))
       akkaHttpSprayJson,
       gatling,
       gatlingCharts,
-      typeSafeConfig
+      typeSafeConfig,
+      scalike,
+      scalikeSqlSyntaxSupport,
+      scalikeConfig,
+      postgres,
+      logback
     )
   )
 

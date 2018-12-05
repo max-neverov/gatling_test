@@ -7,8 +7,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{HttpApp, Route}
 import akka.stream.ActorMaterializer
 import mn.model.model.User
-import mn.repo.InMemoryUserRepository
+import mn.repo.PostgresUserRepository
 import mn.rest.Responses.ResponseError
+import scalikejdbc.config.DBs
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -29,7 +30,9 @@ class SampleAkkaHttpServer extends HttpApp {
     shutdownPromise.future
   }
 
-  private lazy val db = new InMemoryUserRepository()
+  DBs.setupAll()
+
+  private lazy val db = new PostgresUserRepository
 
   override protected def routes: Route = concat(
     pathPrefix("user") {
@@ -80,13 +83,14 @@ class SampleAkkaHttpServer extends HttpApp {
   )
 
   def terminate(): Unit = {
+    DBs.closeAll()
     shutdownPromise.complete(Success(Done))
   }
 
 }
 
 object SampleAkkaHttpServer extends App {
-  val server = new SampleAkkaHttpServer()
+  val server = new SampleAkkaHttpServer
 
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run(): Unit = {
