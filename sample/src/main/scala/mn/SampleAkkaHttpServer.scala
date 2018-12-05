@@ -20,7 +20,8 @@ class SampleAkkaHttpServer extends HttpApp {
   implicit val system = ActorSystem("sample")
   // materialize stream blueprints as running streams
   implicit val materializer = ActorMaterializer()
-  implicit val nonBlockingContext = system.dispatcher
+  lazy implicit val nonBlockingContext = system.dispatcher
+  lazy val blockingContext = systemReference.get.dispatchers.lookup("blocking-dispatcher")
 
   private val shutdownPromise = Promise[Done]
 
@@ -45,6 +46,8 @@ class SampleAkkaHttpServer extends HttpApp {
                 }
               },
               put {
+                implicit val executionContext = blockingContext
+
                 entity(as[User]) { user =>
                   onComplete(db.updateUser(name, user)) {
                     case Success(Right(_)) => complete(StatusCodes.Accepted)
@@ -59,11 +62,14 @@ class SampleAkkaHttpServer extends HttpApp {
           }
         },
         post {
+          implicit val executionContext = blockingContext
+
           entity(as[User]) { user =>
             onComplete(db.saveUser(user)) {
               case Success(Right(_)) => complete(StatusCodes.Created, user)
-              case Success(Left(msg)) => complete(StatusCodes.InternalServerError,
-                ResponseError(234, s"Failed to save user: $user"))
+              case Success(Left(msg)) =>
+                complete(StatusCodes.InternalServerError,
+                  ResponseError(234, s"Failed to save user: $user"))
               case Failure(e) => complete(StatusCodes.InternalServerError,
                 ResponseError(234, s"Failed to save user $user: ${e.getMessage}"))
             }
