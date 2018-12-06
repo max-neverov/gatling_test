@@ -13,7 +13,7 @@ class BasicSimulation extends Simulation {
 
   private val baseUrl = config.getString("baseUrl")
 
-  val feeder = UserFeeder()
+  val getUsersFeeder = UserFeeder(0, 20000)
 
   after {
     DBs.closeAll()
@@ -23,13 +23,14 @@ class BasicSimulation extends Simulation {
     .contentTypeHeader("application/json")
 
   val basicGetScn = scenario("Basic get scenario")
-    .feed(feeder)
+    .feed(getUsersFeeder)
     .group("GET") {
       exec(
         http("Get users")
           // gatling cannot access an object field by name, hence using tuple style
           .get(baseUrl + "/user/${user._1}")
           .check(status.is(200))
+          .check(jsonPath("$.whatever").is("${user._2}"))
       )
     }
 
@@ -60,7 +61,8 @@ class BasicSimulation extends Simulation {
     ),
   ).assertions(
     global.successfulRequests.percent.gt(99),
-    details("GET").responseTime.percentile4.lt(100)
+    details("GET").responseTime.percentile4.lt(150),
+    details("GET").failedRequests.percent.lt(2),
   )
 
 }

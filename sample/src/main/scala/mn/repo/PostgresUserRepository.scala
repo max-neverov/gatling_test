@@ -61,12 +61,13 @@ class PostgresUserRepository extends UserRepository {
     }
   }
 
-  def selectAll()(implicit ec: ExecutionContext): Seq[User] = {
+  def selectAll(offset: Int, limit: Int)(implicit ec: ExecutionContext): Seq[User] = {
     NamedDB('gtlng).readOnly { implicit session =>
       val selectQuery: scalikejdbc.PagingSQLBuilder[User] =
         select(u.result.*)
           .from(Users as u)
-          .limit(20000)
+          .offset(offset)
+          .limit(limit)
 
       withSQL(selectQuery)
         .map(rs => Users.apply(u)(rs))
