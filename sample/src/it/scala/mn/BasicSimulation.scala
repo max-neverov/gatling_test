@@ -3,8 +3,6 @@ package mn
 import com.typesafe.config.ConfigFactory
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
-import mn.model.model.User
-import mn.repo.PostgresUserRepository
 import scalikejdbc.config.DBs
 
 import scala.concurrent.duration._
@@ -15,14 +13,7 @@ class BasicSimulation extends Simulation {
 
   private val baseUrl = config.getString("baseUrl")
 
-  DBs.setupAll()
-  private val db = new PostgresUserRepository
-  private val sampleUser = User("asdf", 42)
-
-  before {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    db.saveUser(sampleUser)
-  }
+  val feeder = UserFeeder()
 
   after {
     DBs.closeAll()
@@ -32,10 +23,12 @@ class BasicSimulation extends Simulation {
     .contentTypeHeader("application/json")
 
   val basicGetScn = scenario("Basic get scenario")
+    .feed(feeder)
     .group("GET") {
       exec(
-        http("Get user asdf")
-          .get(s"$baseUrl/user/asdf")
+        http("Get users")
+          // gatling cannot access an object field by name, hence using tuple style
+          .get(baseUrl + "/user/${user._1}")
           .check(status.is(200))
       )
     }
