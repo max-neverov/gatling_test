@@ -3,11 +3,15 @@ package mn
 import com.typesafe.config.ConfigFactory
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
+import mn.model.model.User
 import scalikejdbc.config.DBs
 
 import scala.concurrent.duration._
 
 class BasicSimulation extends Simulation {
+
+  import rest.SampleJsonProtocols._
+  import spray.json._
 
   private val config = ConfigFactory.load("gatling.conf").getConfig("testConfig")
 
@@ -27,8 +31,7 @@ class BasicSimulation extends Simulation {
     .group("GET") {
       exec(
         http("Get users")
-          // gatling cannot access an object field by name, hence using tuple style
-          .get(baseUrl + "/user/${user._1}")
+          .get(session => "/user/" + session("user").as[User].name)
           .check(status.is(200))
           .check(jsonPath("$.whatever").is("${user._2}"))
       )
@@ -38,10 +41,47 @@ class BasicSimulation extends Simulation {
     .group("GET") {
       exec(
         http("Get nonexistent user")
-          .get(s"$baseUrl/user/nonExistent")
+          .get("/user/nonExistent")
           .check(status.is(404))
       )
     }
+
+  val updateSuccessUsersFeeder = UserFeeder(20000, 1000)
+
+  val basicUpdateScn = scenario("Basic update scenario")
+    .feed(getUsersFeeder)
+    .group("UPDATE") {
+      exec(
+        http("Update users")
+          .put(session => "/user/" + session("user").as[User].name)
+          .body(StringBody(session => session("user").as[User].toJson.toString())).asJson
+          .check(status.is(202))
+        // fail every 40-th update
+      ).doIf(session => session("user").as[User].whatever % 40 == 0) {
+        exec(
+          http("Update nonexistent users")
+            .put(session => "/user/" + session("user").as[User].name + "nonexistent")
+            .body(StringBody(session => {
+              val user = session("user").as[User]
+              user.copy(name = user.name + "nonexistent").toJson.toString()
+            })).asJson
+            .check(status.is(500))
+        )
+      }
+    }
+
+  val updateInterfereWithGetUsersFeeder = UserFeeder(2000, 200)
+
+  val updateInGetRangeScn = scenario("One more update")
+    .feed(updateInterfereWithGetUsersFeeder)
+    .group("UPDATE") {
+      exec(
+        http("Update interfere users")
+          .put(session => "/user/" + session("user").as[User].name)
+          .body(StringBody(session => session("user").as[User].toJson.toString())).asJson
+      )
+    }
+
 
   setUp(
     basicGetScn.inject(
@@ -58,11 +98,20 @@ class BasicSimulation extends Simulation {
       holdFor(20 seconds),
       jumpToRps(20),
       holdFor(40 seconds)
-    ),
+    ).protocols(httpProtocol),
+    basicUpdateScn.inject(
+      nothingFor(5 seconds),
+      heavisideUsers(800) during (20 seconds)
+    ).protocols(httpProtocol),
+    updateInGetRangeScn.inject(
+      constantUsersPerSec(60) during (10 seconds)
+    ).protocols(httpProtocol)
   ).assertions(
     global.successfulRequests.percent.gt(99),
-    details("GET").responseTime.percentile4.lt(150),
+    details("GET").responseTime.percentile4.lt(200),
     details("GET").failedRequests.percent.lt(2),
+    details("UPDATE").responseTime.percentile4.lt(350),
+    details("UPDATE").failedRequests.percent.lt(2)
   )
 
 }
