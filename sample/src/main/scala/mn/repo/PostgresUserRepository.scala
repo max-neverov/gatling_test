@@ -53,8 +53,10 @@ class PostgresUserRepository extends UserRepository {
             Users.column.whatever -> user.whatever
           ).where.eq(Users.column.name, name)
         ).update().apply()
+      } match {
+        case i: Int if i == 1 => Right(Done)
+        case i => Left(s"Updated [$i] users")
       }
-      Right(Done)
     }.recoverWith {
       case NonFatal(e) =>
         Future.successful(Left(e.getMessage))
