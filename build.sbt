@@ -14,7 +14,6 @@ lazy val foo = (project in file("foo"))
 
 lazy val sample = (project in file("sample"))
   .enablePlugins(JavaAppPackaging)
-  .enablePlugins(GatlingPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -30,6 +29,10 @@ lazy val sample = (project in file("sample"))
       postgres,
       logback
     )
+  )
+  .enablePlugins(GatlingPlugin)
+  .settings(
+    target in GatlingIt := baseDirectory.value / "gatling_reports"
   )
 
 // skip packageDoc to improve compile time
